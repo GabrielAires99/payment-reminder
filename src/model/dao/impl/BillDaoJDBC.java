@@ -5,7 +5,6 @@ import java.sql.Date;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
-import java.sql.Statement;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -28,87 +27,19 @@ public class BillDaoJDBC implements BillDao {
 	}
 
 	@Override
-	public void insert(Bill bill) {
-		PreparedStatement pst = null;
-		try {
-			pst = conn.prepareStatement(
-					"INSERT INTO bill "
-					+ "(Description, DueDate, Frequency, PayerId, PayeeId) "
-					+ "VALUES "
-					+ "(?, ?, ?, ?, ?)", 
-					Statement.RETURN_GENERATED_KEYS);
-			pst.setString(1, bill.getDescription());
-			pst.setDate(2, new Date(bill.getDueDate().getTime()));
-			pst.setString(3, String.valueOf(bill.getFrequency()));
-			pst.setInt(4, bill.getPayer().getId());
-			pst.setInt(5, bill.getPayee().getId());
-			int rowsAffected = pst.executeUpdate();
-			if (rowsAffected > 0) {
-				ResultSet rs = pst.getGeneratedKeys();
-				if (rs.next()) {
-					int id = rs.getInt(1);
-					bill.setId(id);
-				}
-				DB.closeResultSet(rs);
-			} else {
-				throw new DbException("Unexpected error. No rows affected");
-			}
-		} catch (SQLException e) {
-			throw new DbException(e.getMessage());
-		} finally {
-			DB.closeStatement(pst);
-		}
-	}
-
-	@Override
-	public Bill findById(int id) {
-		PreparedStatement pst = null;
-		ResultSet rs = null;
-		try {
-			pst = conn.prepareStatement(
-					"SELECT "
-					+ "bill.*, "
-					+ "payer.Name as PayerName, payer.Email as PayerEmail, "
-					+ "payee.Name as PayeeName "
-					+ "FROM bill "
-					+ "INNER JOIN payer "
-					+ "ON bill.PayerId = payer.Id "
-					+ "INNER JOIN payee "
-					+ "ON bill.PayeeId = payee.Id "
-					+ "WHERE bill.Id = ?");
-			pst.setInt(1, id);
-			rs = pst.executeQuery();
-			if (rs.next()) {
-				Payee payee = instantiatePayee(rs);
-				Payer payer = instantiatePayer(rs);
-				Bill bill = instantiateBill(rs, payer, payee);
-				return bill;
-			}
-			return null;
-		} catch (SQLException e) {
-			throw new DbException(e.getMessage());
-		} finally {
-			DB.closeResultSet(rs);
-			DB.closeStatement(pst);
-		}
-	}
-
-	@Override
 	public List<Bill> findAll() {
 		PreparedStatement pst = null;
 		ResultSet rs = null;
 		try {
 			pst = conn.prepareStatement(
-					"SELECT "
-					+ "bill.*, "
+					"SELECT " 
+					+ "bill.*, " 
 					+ "payer.Name as PayerName, payer.Email as PayerEmail, "
-					+ "payee.Name as PayeeName "
-					+ "FROM bill "
-					+ "INNER JOIN payer "
+					+ "payee.Name as PayeeName " 
+					+ "FROM bill " 
+					+ "INNER JOIN payer " 
 					+ "ON bill.PayerId = payer.Id "
-					+ "INNER JOIN payee "
-					+ "ON bill.PayeeId = payee.Id "
-					+ "ORDER BY DueDate");
+					+ "INNER JOIN payee " + "ON bill.PayeeId = payee.Id " + "ORDER BY DueDate");
 			rs = pst.executeQuery();
 			List<Bill> list = new ArrayList<>();
 			Map<Integer, Payee> payeeMap = new HashMap<>();
@@ -137,7 +68,7 @@ public class BillDaoJDBC implements BillDao {
 			DB.closeStatement(pst);
 		}
 	}
-	
+
 	@Override
 	public void update(Bill bill) {
 		PreparedStatement pst = null;
@@ -163,27 +94,7 @@ public class BillDaoJDBC implements BillDao {
 			DB.closeStatement(pst);
 		}
 	}
-
-	@Override
-	public void deleteById(int id) {
-		PreparedStatement pst = null;
-		try {
-			pst = conn.prepareStatement(
-					"DELETE FROM bill "
-					+ "WHERE "
-					+ "Id = ?");
-			pst.setInt(1, id);
-			int rowsAffected = pst.executeUpdate();
-			if (rowsAffected < 1) {
-				throw new DbException("Unexpected error. No rows affected");
-			}
-		} catch (SQLException e) {
-			throw new DbException(e.getMessage());
-		} finally {
-			DB.closeStatement(pst);
-		}
-	}
-
+	
 	private Payee instantiatePayee(ResultSet rs) throws SQLException {
 		Payee payee = new Payee();
 		payee.setId(rs.getInt("PayeeId"));
